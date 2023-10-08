@@ -3,13 +3,33 @@
 
 #include "search-strategies.h"
 
-class PathMapItem {
-public:
-	const SearchState parent;
-	const SearchAction action;
+bool operator==(const SearchState &a, const SearchState &b) {
+    return !(a < b) && !(b < a);
+}
 
-	PathMapItem(const SearchState &p, const SearchAction& a) : parent(p), action(a) {}
+class PathItem {
+public:
+	SearchState parent;
+	SearchAction action;
+
+	PathItem(const SearchState &p, const SearchAction& a) : parent(p), action(a) {}
 };
+
+std::vector<SearchAction> getPath(std::map<SearchState, PathItem> &paths, const SearchState &final, const SearchState &init) {
+	std::vector<SearchAction> path;
+	auto current = paths.find(final);
+
+	while (!(current->second.parent == init)) {
+		path.push_back(current->second.action);
+		current = paths.find(current->second.parent);
+	}
+
+	// Add first action
+	path.push_back(current->second.action);
+
+	std::reverse(path.begin(), path.end());
+	return path;
+}
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
 	return {};
@@ -23,13 +43,9 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
     return 0;
 }
 
-bool operator==(const SearchState &a, const SearchState &b) {
-    return !(a < b) && !(b < a);
-}
-
 class AStarFrontierItem {
 public:
-	const SearchState state;
+	SearchState state;
 	int g_cost;
 	double f_cost;
 	
@@ -46,27 +62,13 @@ public:
 	}
 };
 
-std::vector<SearchAction> getPath(std::map<SearchState, PathMapItem> &paths, const SearchState &final, const SearchState &init) {
-	std::vector<SearchAction> path;
-	auto current = paths.find(final);
-
-	while (!(current->first == init)) {
-		path.push_back(current->second.action);
-		current = paths.find(current->second.parent);
-	}
-
-	std::reverse(path.begin(), path.end());
-	return path;
-}
-
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {	
 	std::set<AStarFrontierItem> frontier;
 	std::set<SearchState> closed;
-	std::map<SearchState, PathMapItem> paths;
+	std::map<SearchState, PathItem> paths;
 
 	// Add initial state
 	frontier.insert(AStarFrontierItem(init_state, 0, compute_heuristic(init_state, *heuristic_)));
-	paths.insert(std::make_pair(init_state, PathMapItem(init_state, init_state.actions()[0])));
 
 	while (!frontier.empty()) {
 		AStarFrontierItem current = *frontier.begin();
@@ -77,7 +79,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 		if (current.state.isFinal())
 			return getPath(paths, current.state, init_state);
 
-		for (const SearchAction &action : current.state.actions()) {
+		for (SearchAction &action : current.state.actions()) {
 			SearchState new_state = action.execute(current.state);
 
 			// Don't add to frontier if already in closed
@@ -91,7 +93,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 				if (stored_state != frontier.end())
 					frontier.erase(stored_state); // Only if item was already in map
 				frontier.insert(AStarFrontierItem(new_state, current.g_cost + 1, f_updated));
-				paths.insert(std::make_pair(new_state, PathMapItem(current.state, action)));
+				paths.insert_or_assign(new_state, PathItem(current.state, action));
 			}
 		}
 	}
