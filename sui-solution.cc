@@ -44,8 +44,69 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
 	return {};
 }
 
+double nbOfCardsOnTop(std::array<WorkStack, nb_stacks> stacks, Card card_to_find) {
+	// Try to find card with value one more (of the same color) in stacks
+	for (const auto &stack : stacks) {
+		auto storage = stack.storage();
+		// Skip empty stack
+		if (storage.size() == 0) {
+			continue;
+		}
+		// For non-empty stack find card to be placed at top of the home pile
+		auto card = std::find(storage.begin(), storage.end(), card_to_find);
+		// Count the number of cards on top of this stack
+		if (card != storage.end()) {
+			return std::distance(card, storage.end()) - 1; // -1 because we don't count past the end
+		}
+	}
+
+	// Card is at free cell 
+	return 0;
+}
+
+inline bool hasEmptySpot(const GameState &state)  {
+	auto free_cells_single_empty = std::find_if(state.free_cells.begin(), state.free_cells.end(), [](const FreeCell &cell) {
+		return cell.canAccept(Card(Color::Heart, 1));
+	});
+	auto stacks_single_empty = std::find_if(state.stacks.begin(), state.stacks.end(), [](const WorkStack &stack) {
+		return stack.canAccept(Card(Color::Heart, 1));
+	});
+	return free_cells_single_empty != state.free_cells.end() || stacks_single_empty != state.stacks.end();
+} 
+
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
-    return 0;
+	int result = 0;
+	int colors_idx = 0;
+	std::array<std::optional<Color>, 4> used_colors;
+
+	// For each top card of home pile
+   	for (const auto &home : state.homes) {
+		auto opt_top = home.topCard();
+		// If there is any card placed in that home pile and it's not the king
+		if (opt_top.has_value() && opt_top->value != king_value) {
+			// calculate number cards on top for this card in working piles
+			result += nbOfCardsOnTop(state.stacks, Card(opt_top->color, opt_top->value + 1));
+			used_colors[colors_idx++] = opt_top->color;
+		}
+	}
+
+	// Run through home piles for the remaining colors
+	for (auto color: colors_list) {
+		auto a = std::find(used_colors.begin(), used_colors.end(), color);
+		if (a == used_colors.end()) {
+			result += nbOfCardsOnTop(state.stacks, Card(color, 1));
+		}
+	}
+
+	// Multiply result by 2 if there are no empty free cells or stacks
+	if (!hasEmptySpot(state)) {
+		result *= 2;
+	}
+
+	std::cout << state << std::endl;
+	std::cout << result << std::endl;
+
+	return result;
 }
 
 class AStarFrontierItem {
@@ -68,7 +129,7 @@ public:
 };
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {	
-	std::set<AStarFrontierItem> frontier;
+	std::multiset<AStarFrontierItem> frontier;
 	std::set<SearchState> closed;
 	std::map<SearchState, PathItem> paths;
 
@@ -87,7 +148,8 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 		for (SearchAction &action : current.state.actions()) {
 			// Stop if memory usage is too high
 			if (memUsageSucceeded(mem_limit_)) {
-				std::cout << "Memory limit exceeded, returning empty path\n";
+				std::cout << "Memory limit exceeded (" << getCurrentRSS();
+				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
 				return {};
 			}
 
