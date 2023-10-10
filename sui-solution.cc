@@ -1,5 +1,7 @@
 #include <set>
 #include <algorithm>
+#include <queue>
+#include <stack>
 
 #include "search-strategies.h"
 #include "memusage.h"
@@ -43,15 +45,101 @@ std::vector<SearchAction> getPath(
 }
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
+  // TODO mem_limit
+  std::vector<SearchAction> solution;
+  std::queue<SearchState> open;
+  std::set<SearchState> explored;
+
+  open.push(init_state);
+
+  if (init_state.isFinal()) {
+    // found final state
+    std::cout << "Found Final State\n";
+    return {};
+  }
+
+  while (!open.empty()) {
+    SearchState currState = open.front();
+    open.pop();
+    // skip duplicates in OPEN
+    if (explored.find(currState) != explored.end()) {
+      continue;
+    }
+
+    explored.insert(currState);
+
+    std::vector<SearchAction> availActions = currState.actions();
+    for (SearchAction action : availActions) {
+      SearchState newState = action.execute(currState);
+
+      if (newState.isFinal()) {
+        // found final state
+        std::cout << "Found Final State\n";
+        // return path
+        return {};
+      }
+
+      if (explored.find(newState) == explored.end()) {
+        open.push(newState);
+      }
+    }
+  }
+
 	return {};
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
+  std::stack<SearchState> open;
+  std::set<SearchState> explored;
+
+  open.push(init_state);
+
+  if (init_state.isFinal()) {
+    // found final state
+    std::cout << "Found Final State\n";
+    return {};
+  }
+
+  int currDepth = 0;
+  while (!open.empty()) {
+    SearchState currState = open.top();
+    open.pop();
+    // skip duplicates in OPEN or continue once we're way too deep
+    if (explored.find(currState) != explored.end()) {
+      continue;
+    }
+
+    if (currDepth >= depth_limit_) {
+      currDepth--;
+      continue;
+    }
+
+    explored.insert(currState);
+
+    std::vector<SearchAction> availActions = currState.actions();
+    for (SearchAction action : availActions) {
+      SearchState newState = action.execute(currState);
+
+      if (newState.isFinal()) {
+        // found final state
+        std::cout << "Found Final State\n";
+        // return path
+        return {};
+      }
+
+      if (explored.find(newState) == explored.end()) {
+        open.push(newState);
+      }
+    }
+
+    currDepth++;
+  }
+
 	return {};
 }
 
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
-    return 0;
+  return 0;
 }
 
 class AStarFrontierItem {
