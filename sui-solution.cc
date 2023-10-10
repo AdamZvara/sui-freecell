@@ -4,12 +4,14 @@
 #include "search-strategies.h"
 #include "memusage.h"
 
+#define RESERVE 50000 // 50 MB memory reserve
+
 bool operator==(const SearchState &a, const SearchState &b) {
     return !(a < b) && !(b < a);
 }
 
 inline bool memUsageSucceeded(size_t limit) {
-	return getCurrentRSS() > limit * 0.98; // Leave 2% as a reserve
+	return getCurrentRSS() > limit - RESERVE;
 }
 
 class PathItem {
@@ -68,7 +70,7 @@ public:
 };
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {	
-	std::set<AStarFrontierItem> frontier;
+	std::multiset<AStarFrontierItem> frontier;
 	std::set<SearchState> closed;
 	std::map<SearchState, PathItem> paths;
 
@@ -87,7 +89,8 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 		for (SearchAction &action : current.state.actions()) {
 			// Stop if memory usage is too high
 			if (memUsageSucceeded(mem_limit_)) {
-				std::cout << "Memory limit exceeded, returning empty path\n";
+				std::cout << "Memory limit exceeded (" << getCurrentRSS();
+				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
 				return {};
 			}
 
