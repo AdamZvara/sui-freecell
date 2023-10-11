@@ -7,7 +7,7 @@
 #define RESERVE 50000 // 50 MB memory reserve
 
 bool operator==(const SearchState &a, const SearchState &b) {
-    return !(a < b) && !(b < a);
+    return a.state_ == b.state_;
 }
 
 inline bool memUsageSucceeded(size_t limit) {
@@ -67,7 +67,6 @@ public:
 	AStarFrontierItem(std::shared_ptr<SearchState> state): state(move(state)), g_cost(0), f_cost(0) {}
 
 	bool operator<(const AStarFrontierItem &other) const {
-		// std::cout << "AStarFrontierItem comparison" << std::endl;
 		if (*state.get() == *other.state.get()) 
 			return false;
 		return f_cost < other.f_cost;
@@ -98,8 +97,7 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 		for (SearchAction &action : current_state->actions()) {
 			// Stop if memory usage is too high
 			if (memUsageSucceeded(mem_limit_)) {
-				std::cout << "Memory limit exceeded (" << getCurrentRSS();
-				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+				std::cout << "Memory limit exceeded" << std::endl;
 				return {};
 			}
 
@@ -117,8 +115,8 @@ std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {
 				item.f_cost = f_updated;
 				item.g_cost = new_g_cost;
 				if (stored_state != open.end())
-					open.erase(stored_state); // Only if item was already in open
-				open.insert(item);
+					open.erase(stored_state);
+				open.insert(stored_state, item);
 				paths.insert_or_assign(new_state, PathItem(current.state, action));
 			}
 		}
