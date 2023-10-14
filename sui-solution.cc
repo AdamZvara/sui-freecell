@@ -24,7 +24,7 @@ public:
 	std::shared_ptr<SearchState> parent;
 	SearchAction action;
 
-	PathItem(std::shared_ptr<SearchState> p, const SearchAction& a) : parent(move(p)), action(a) {}
+	PathItem(std::shared_ptr<SearchState> p, const SearchAction& a) : parent(std::move(p)), action(a) {}
 };
 
 std::vector<SearchAction> getPath(
@@ -159,10 +159,10 @@ public:
 	double f_cost;
 	
 	AStarFrontierItem(std::shared_ptr<SearchState> state, int g_cost, double f_cost):
-		state(move(state)), g_cost(g_cost), f_cost(f_cost) {}
+		state(std::move(state)), g_cost(g_cost), f_cost(f_cost) {}
 
 	// Constructor used for checking if state is in open
-	AStarFrontierItem(std::shared_ptr<SearchState> state): state(move(state)), g_cost(0), f_cost(0) {}
+	AStarFrontierItem(std::shared_ptr<SearchState> state): state(std::move(state)), g_cost(0), f_cost(0) {}
 
 	bool operator<(const AStarFrontierItem &other) const {
 		if (*state.get() == *other.state.get()) 
