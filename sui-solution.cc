@@ -3,6 +3,7 @@
 #include <queue>
 #include <stack>
 
+#include "card-storage.h"
 #include "search-strategies.h"
 #include "memusage.h"
 
@@ -13,6 +14,10 @@
 
 bool operator==(const SearchState &a, const SearchState &b) {
     return a.state_ == b.state_;
+}
+
+bool searchStatePtrLesser(const std::shared_ptr<SearchState> a, const std::shared_ptr<SearchState> b) {
+    return *a < *b;
 }
 
 inline bool memUsageSucceeded(size_t limit) {
@@ -49,20 +54,20 @@ std::vector<SearchAction> getPath(
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
     malloc_trim(0);
-	std::map<SearchState, PathItem> paths;
-    std::queue<SearchState> open;
-    std::set<SearchState> explored;
+	std::map<std::shared_ptr<SearchState>, PathItem> paths;
+    std::queue<std::shared_ptr<SearchState>> open;
+    std::set<std::shared_ptr<SearchState>, decltype(searchStatePtrLesser)*> explored(searchStatePtrLesser);
 
-    open.push(init_state);
+    std::shared_ptr<SearchState> initStatePtr = std::make_shared<SearchState>(init_state);
+    open.push(initStatePtr);
 
     if (init_state.isFinal()) {
         // found final state
-        std::cout << "Found Final State\n";
         return {};
     }
 
     while (!open.empty()) {
-        SearchState currState = open.front();
+        std::shared_ptr<SearchState> currState = open.front();
         open.pop();
         // skip duplicates in OPEN
         if (explored.find(currState) != explored.end()) {
@@ -71,7 +76,7 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
         explored.insert(currState);
 
-        std::vector<SearchAction> availActions = currState.actions();
+        std::vector<SearchAction> availActions = currState->actions();
         for (SearchAction action : availActions) {
 			if (memUsageSucceeded(mem_limit_)) {
 				std::cout << "Memory limit exceeded (" << getCurrentRSS();
@@ -79,14 +84,14 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 				return {};
 			}
 
-            SearchState newState = action.execute(currState);
+            std::shared_ptr<SearchState> newState = std::make_shared<SearchState>(action.execute(*currState));
 
-            if (newState.isFinal()) {
+            if (newState->isFinal()) {
                 // found final state
                 std::cout << "Found Final State" << std::endl;
                 // return path
                 paths.insert_or_assign(newState, PathItem(currState, action));
-                return getPath(paths, newState, init_state);
+                return getPath(paths, newState, initStatePtr);
             }
 
             if (explored.find(newState) == explored.end()) {
@@ -101,40 +106,45 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
     malloc_trim(0);
-    std::map<SearchState, PathItem> paths;
-    std::stack<std::pair<SearchState, int>> open;
-    std::set<SearchState> openSet;
+    std::map<std::shared_ptr<SearchState>, PathItem> paths;
+    std::stack<std::pair<std::shared_ptr<SearchState>, int>> open;
+    std::set<std::shared_ptr<SearchState>, decltype(searchStatePtrLesser)*> openSet(searchStatePtrLesser);
 
     int currDepth = 0;
-    open.push(std::make_pair(init_state, currDepth));
+    std::shared_ptr<SearchState> initStatePtr = std::make_shared<SearchState>(init_state);
+    open.push(std::make_pair(initStatePtr, currDepth));
 
     if (init_state.isFinal()) {
         // found final state
-        std::cout << "Found Final State\n";
         return {};
     }
 
     while (!open.empty()) {
-        std::pair<SearchState, int> currStatePair = open.top();
-        SearchState currState = currStatePair.first;
+        std::pair<std::shared_ptr<SearchState>, int> currStatePair = open.top();
+        std::shared_ptr<SearchState> currState = currStatePair.first;
         currDepth = currStatePair.second;
         open.pop();
 
-        if (currDepth == depth_limit_) {
+        if (currDepth >= depth_limit_) {
             continue;
         }
 
-        std::vector<SearchAction> availActions = currStatePair.first.actions();
+        std::vector<SearchAction> availActions = currState->actions();
 
         for (SearchAction action : availActions) {
-            SearchState newState = action.execute(currStatePair.first);
+			if (memUsageSucceeded(mem_limit_)) {
+				std::cout << "Memory limit exceeded (" << getCurrentRSS();
+				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+				return {};
+			}
 
-            if (newState.isFinal()) {
+            std::shared_ptr<SearchState> newState = std::make_shared<SearchState>(action.execute(*currState));
+            if (newState->isFinal()) {
                 // found final state
                 std::cout << "Found Final State\n";
                 // return path
                 paths.insert_or_assign(newState, PathItem(currState, action));
-                return getPath(paths, newState, init_state);
+                return getPath(paths, newState, initStatePtr);
             }
 
             if (openSet.find(newState) == openSet.end()) {
