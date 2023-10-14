@@ -48,108 +48,108 @@ std::vector<SearchAction> getPath(
 }
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
-  malloc_trim(0);
+    malloc_trim(0);
 	std::map<SearchState, PathItem> paths;
-  std::queue<SearchState> open;
-  std::set<SearchState> explored;
+    std::queue<SearchState> open;
+    std::set<SearchState> explored;
 
-  open.push(init_state);
+    open.push(init_state);
 
-  if (init_state.isFinal()) {
-    // found final state
-    std::cout << "Found Final State\n";
-    return {};
-  }
-
-  while (!open.empty()) {
-    SearchState currState = open.front();
-    open.pop();
-    // skip duplicates in OPEN
-    if (explored.find(currState) != explored.end()) {
-      continue;
+    if (init_state.isFinal()) {
+        // found final state
+        std::cout << "Found Final State\n";
+        return {};
     }
 
-    explored.insert(currState);
+    while (!open.empty()) {
+        SearchState currState = open.front();
+        open.pop();
+        // skip duplicates in OPEN
+        if (explored.find(currState) != explored.end()) {
+            continue;
+        }
 
-    std::vector<SearchAction> availActions = currState.actions();
-    for (SearchAction action : availActions) {
+        explored.insert(currState);
+
+        std::vector<SearchAction> availActions = currState.actions();
+        for (SearchAction action : availActions) {
 			if (memUsageSucceeded(mem_limit_)) {
 				std::cout << "Memory limit exceeded (" << getCurrentRSS();
 				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
 				return {};
 			}
 
-      SearchState newState = action.execute(currState);
+            SearchState newState = action.execute(currState);
 
-      if (newState.isFinal()) {
-        // found final state
-        std::cout << "Found Final State" << std::endl;
-        // return path
-				paths.insert_or_assign(newState, PathItem(currState, action));
-        return getPath(paths, newState, init_state);
-      }
+            if (newState.isFinal()) {
+                // found final state
+                std::cout << "Found Final State" << std::endl;
+                // return path
+                paths.insert_or_assign(newState, PathItem(currState, action));
+                return getPath(paths, newState, init_state);
+            }
 
-      if (explored.find(newState) == explored.end()) {
-        open.push(newState);
-				paths.insert_or_assign(newState, PathItem(currState, action));
-      }
+            if (explored.find(newState) == explored.end()) {
+                open.push(newState);
+                paths.insert_or_assign(newState, PathItem(currState, action));
+            }
+        }
     }
-  }
 
 	return {};
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
-  malloc_trim(0);
-	std::map<SearchState, PathItem> paths;
-  std::stack<std::pair<SearchState, int>> open;
-  std::set<SearchState> openSet;
+    malloc_trim(0);
+    std::map<SearchState, PathItem> paths;
+    std::stack<std::pair<SearchState, int>> open;
+    std::set<SearchState> openSet;
 
-  int currDepth = 0;
-  open.push(std::make_pair(init_state, currDepth));
+    int currDepth = 0;
+    open.push(std::make_pair(init_state, currDepth));
 
-  if (init_state.isFinal()) {
-    // found final state
-    std::cout << "Found Final State\n";
-    return {};
-  }
-
-  while (!open.empty()) {
-    std::pair<SearchState, int> currStatePair = open.top();
-    SearchState currState = currStatePair.first;
-    currDepth = currStatePair.second;
-    open.pop();
-
-    if (currDepth == depth_limit_) {
-      continue;
-    }
-
-    std::vector<SearchAction> availActions = currStatePair.first.actions();
-
-    for (SearchAction action : availActions) {
-      SearchState newState = action.execute(currStatePair.first);
-
-      if (newState.isFinal()) {
+    if (init_state.isFinal()) {
         // found final state
         std::cout << "Found Final State\n";
-        // return path
-				paths.insert_or_assign(newState, PathItem(currState, action));
-        return getPath(paths, newState, init_state);
-      }
-
-      if (openSet.find(newState) == openSet.end()) {
-        open.push(std::make_pair(newState, currDepth + 1));
-        openSet.insert(newState);
-        paths.insert_or_assign(newState, PathItem(currStatePair.first, action));
-      }
+        return {};
     }
-  }
+
+    while (!open.empty()) {
+        std::pair<SearchState, int> currStatePair = open.top();
+        SearchState currState = currStatePair.first;
+        currDepth = currStatePair.second;
+        open.pop();
+
+        if (currDepth == depth_limit_) {
+            continue;
+        }
+
+        std::vector<SearchAction> availActions = currStatePair.first.actions();
+
+        for (SearchAction action : availActions) {
+            SearchState newState = action.execute(currStatePair.first);
+
+            if (newState.isFinal()) {
+                // found final state
+                std::cout << "Found Final State\n";
+                // return path
+                paths.insert_or_assign(newState, PathItem(currState, action));
+                return getPath(paths, newState, init_state);
+            }
+
+            if (openSet.find(newState) == openSet.end()) {
+                open.push(std::make_pair(newState, currDepth + 1));
+                openSet.insert(newState);
+                paths.insert_or_assign(newState, PathItem(currStatePair.first, action));
+            }
+        }
+    }
 
 	return {};
 }
 
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
-  return 0;
+    return 0;
 }
 
 class AStarFrontierItem {
