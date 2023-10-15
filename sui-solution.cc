@@ -80,8 +80,8 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         std::vector<SearchAction> availActions = currState->actions();
         for (SearchAction action : availActions) {
 						if (memUsageSucceeded(mem_limit_)) {
-								std::cout << "Memory limit exceeded (" << getCurrentRSS();
-								std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+								// Stop if memory usage is too high
+								std::cerr << "Memory limit exceeded" << std::endl;
 								return {};
 						}
 
@@ -89,8 +89,6 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
             if (newState->isFinal()) {
                 // found final state
-                std::cout << "Found Final State" << std::endl;
-                // return path
                 paths.insert_or_assign(newState, PathItem(currState, action));
                 return getPath(paths, newState, initStatePtr);
             }
@@ -124,6 +122,7 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
         SearchSharedPtr currState = currStatePair.first;
         currDepth = currStatePair.second;
         open.pop();
+				openSet.erase(currState);
 
         if (currDepth >= depth_limit_) {
             continue;
@@ -133,16 +132,14 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
 
         for (SearchAction action : availActions) {
 				if (memUsageSucceeded(mem_limit_)) {
-						std::cout << "Memory limit exceeded (" << getCurrentRSS();
-						std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+						// Stop if memory usage is too high
+						std::cerr << "Memory limit exceeded" << std::endl;
 						return {};
 				}
 
             SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
             if (newState->isFinal()) {
                 // found final state
-                std::cout << "Found Final State\n";
-                // return path
                 paths.insert_or_assign(newState, PathItem(currState, action));
                 return getPath(paths, newState, initStatePtr);
             }
