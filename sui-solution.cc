@@ -15,20 +15,20 @@
 typedef std::shared_ptr<SearchState> SearchSharedPtr; 
 
 inline bool memUsageSucceeded(size_t limit) {
-	return getCurrentRSS() > limit - RESERVE;
+		return getCurrentRSS() > limit - RESERVE;
 }
 
 class PathItem {
 public:
-	double f_cost;
-	SearchSharedPtr parent;
-	SearchAction action;
+		double f_cost;
+		SearchSharedPtr parent;
+		SearchAction action;
 
-	PathItem(double f, SearchSharedPtr p, const SearchAction& a) : 
-		f_cost(f), parent(std::move(p)), action(a) {}
+		PathItem(double f, SearchSharedPtr p, const SearchAction& a) :
+				f_cost(f), parent(std::move(p)), action(a) {}
 
-	PathItem(SearchSharedPtr p, const SearchAction& a) : 
-		f_cost(0), parent(std::move(p)), action(a) {}
+		PathItem(SearchSharedPtr p, const SearchAction& a) :
+				f_cost(0), parent(std::move(p)), action(a) {}
 };
 
 template <typename MapType>
@@ -37,18 +37,18 @@ std::vector<SearchAction> getPath(
 	SearchSharedPtr final, 
 	SearchSharedPtr init
 ) {
-	std::vector<SearchAction> path;
-	auto current = paths.find(final);
+		std::vector<SearchAction> path;
+		auto current = paths.find(final);
 
-	while (!(current->second.parent == init)) {
+		while (!(current->second.parent == init)) {
+				path.push_back(current->second.action);
+				current = paths.find(current->second.parent);
+		}
+
+		// Add first action
 		path.push_back(current->second.action);
-		current = paths.find(current->second.parent);
-	}
-
-	// Add first action
-	path.push_back(current->second.action);
-	std::reverse(path.begin(), path.end());
-	return path;
+		std::reverse(path.begin(), path.end());
+		return path;
 }
 
 bool searchStatePtrLesser(const SearchSharedPtr a, const SearchSharedPtr b) {
@@ -57,7 +57,7 @@ bool searchStatePtrLesser(const SearchSharedPtr a, const SearchSharedPtr b) {
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
     malloc_trim(0);
-	std::map<SearchSharedPtr, PathItem> paths;
+		std::map<SearchSharedPtr, PathItem> paths;
     std::queue<SearchSharedPtr> open;
     std::set<SearchSharedPtr, decltype(searchStatePtrLesser)*> explored(searchStatePtrLesser);
 
@@ -81,11 +81,11 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
         std::vector<SearchAction> availActions = currState->actions();
         for (SearchAction action : availActions) {
-			if (memUsageSucceeded(mem_limit_)) {
-				std::cout << "Memory limit exceeded (" << getCurrentRSS();
-				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
-				return {};
-			}
+						if (memUsageSucceeded(mem_limit_)) {
+								std::cout << "Memory limit exceeded (" << getCurrentRSS();
+								std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+								return {};
+						}
 
             SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
 
@@ -104,7 +104,7 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
         }
     }
 
-	return {};
+		return {};
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
@@ -135,11 +135,11 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
         std::vector<SearchAction> availActions = currState->actions();
 
         for (SearchAction action : availActions) {
-			if (memUsageSucceeded(mem_limit_)) {
-				std::cout << "Memory limit exceeded (" << getCurrentRSS();
-				std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
-				return {};
-			}
+				if (memUsageSucceeded(mem_limit_)) {
+						std::cout << "Memory limit exceeded (" << getCurrentRSS();
+						std::cout << " out of " << mem_limit_ << "), returning empty path" << std::endl;
+						return {};
+				}
 
             SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
             if (newState->isFinal()) {
@@ -158,7 +158,7 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
         }
     }
 
-	return {};
+		return {};
 }
 
 double nbOfCardsOnTop(std::array<WorkStack, nb_stacks> stacks, Card card_to_find) {
@@ -242,83 +242,83 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
  we don't take their freecells into consideration, because many expanded states
  only differ with card position in free cells or home cells ...) */
 bool operator==(const SearchState &s1, const SearchState &s2) {
-	return s1.state_.stacks < s2.state_.stacks;
+		return s1.state_.stacks < s2.state_.stacks;
 }
 
 bool searchStatePtrEqAstar(const SearchSharedPtr lhs, const SearchSharedPtr rhs) {
-	return *lhs == *rhs;
+		return *lhs == *rhs;
 }
 
 class AStarOpenItem {
 public:
-	SearchSharedPtr state;
-	int g_cost;
-	double f_cost;
-	
-	AStarOpenItem(SearchSharedPtr state, int g_cost, double f_cost):
-		state(std::move(state)), g_cost(g_cost), f_cost(f_cost) {}
+		SearchSharedPtr state;
+		int g_cost;
+		double f_cost;
+		
+		AStarOpenItem(SearchSharedPtr state, int g_cost, double f_cost):
+				state(std::move(state)), g_cost(g_cost), f_cost(f_cost) {}
 
-	bool operator<(const AStarOpenItem &other) const {
-		if (f_cost == other.f_cost) {
-			return *state.get() == *other.state.get();
+		bool operator<(const AStarOpenItem &other) const {
+				if (f_cost == other.f_cost) {
+						return *state.get() == *other.state.get();
+				}
+				return f_cost < other.f_cost;
 		}
-		return f_cost < other.f_cost;
-	}
 };
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {	
-	std::multiset<AStarOpenItem> open;
-	std::set<SearchSharedPtr, decltype(searchStatePtrEqAstar)*> closed(searchStatePtrEqAstar);
-	std::map<SearchSharedPtr, PathItem, decltype(searchStatePtrEqAstar)*> paths(searchStatePtrEqAstar);
+		std::multiset<AStarOpenItem> open;
+		std::set<SearchSharedPtr, decltype(searchStatePtrEqAstar)*> closed(searchStatePtrEqAstar);
+		std::map<SearchSharedPtr, PathItem, decltype(searchStatePtrEqAstar)*> paths(searchStatePtrEqAstar);
 
-	auto init_state_ptr = std::make_shared<SearchState>(init_state);
+		auto init_state_ptr = std::make_shared<SearchState>(init_state);
 
-	// Add initial state
-	open.insert(AStarOpenItem(init_state_ptr, 0, 0));
-	// Initial state can have random action because it is not used
-	paths.insert(std::make_pair(init_state_ptr, PathItem(0, init_state_ptr, init_state.actions()[0])));
+		// Add initial state
+		open.insert(AStarOpenItem(init_state_ptr, 0, 0));
+		// Initial state can have random action because it is not used
+		paths.insert(std::make_pair(init_state_ptr, PathItem(0, init_state_ptr, init_state.actions()[0])));
 
-	while (!open.empty()) {
-		AStarOpenItem current = *open.begin();
-		open.erase(open.begin());
-		closed.insert(current.state);
+		while (!open.empty()) {
+				AStarOpenItem current = *open.begin();
+				open.erase(open.begin());
+				closed.insert(current.state);
 
-		auto current_state = current.state.get();
-		auto new_g_cost = current.g_cost + 1;
+				auto current_state = current.state.get();
+				auto new_g_cost = current.g_cost + 1;
 
-		if (current_state->isFinal()) {
-			return getPath(paths, current.state, init_state_ptr);
-		}
-
-		for (SearchAction &action : current_state->actions()) {
-			if (memUsageSucceeded(mem_limit_)) {
-				// Stop if memory usage is too high
-				std::cerr << "Memory limit exceeded" << std::endl;
-				return {};
-			}
-
-			auto new_state = std::make_shared<SearchState>(action.execute(*current_state));
-
-			// Don't add to open if already in closed
-			if (closed.find(new_state) != closed.end()) {
-				continue;
-			}
-
-			double f_updated = new_g_cost + compute_heuristic(*new_state, *heuristic_);
-			auto new_item = AStarOpenItem(new_state, new_g_cost, f_updated);
-			auto in_map = paths.find(new_state);
-			// If item is in paths, get its f_cost and search for it in open
-			auto in_open = (in_map != paths.end()) ? open.find(AStarOpenItem(new_state, 0, in_map->second.f_cost)) : open.end();
-
-			if (in_open == open.end() || in_open->f_cost > f_updated) {
-				if (in_open != open.end()) { // Only if state is in open
-					open.erase(in_open);
+				if (current_state->isFinal()) {
+					return getPath(paths, current.state, init_state_ptr);
 				}
-				open.insert(new_item);
-				paths.insert_or_assign(new_state, PathItem(f_updated, current.state, action));
-			}
-		}
-	}
 
-	return {};
+				for (SearchAction &action : current_state->actions()) {
+						if (memUsageSucceeded(mem_limit_)) {
+								// Stop if memory usage is too high
+								std::cerr << "Memory limit exceeded" << std::endl;
+								return {};
+						}
+
+						auto new_state = std::make_shared<SearchState>(action.execute(*current_state));
+
+						// Don't add to open if already in closed
+						if (closed.find(new_state) != closed.end()) {
+								continue;
+						}
+
+						double f_updated = new_g_cost + compute_heuristic(*new_state, *heuristic_);
+						auto new_item = AStarOpenItem(new_state, new_g_cost, f_updated);
+						auto in_map = paths.find(new_state);
+						// If item is in paths, get its f_cost and search for it in open
+						auto in_open = (in_map != paths.end()) ? open.find(AStarOpenItem(new_state, 0, in_map->second.f_cost)) : open.end();
+
+						if (in_open == open.end() || in_open->f_cost > f_updated) {
+								if (in_open != open.end()) { // Only if state is in open
+										open.erase(in_open);
+								}
+								open.insert(new_item);
+								paths.insert_or_assign(new_state, PathItem(f_updated, current.state, action));
+						}
+				}
+		}
+
+		return {};
 }
