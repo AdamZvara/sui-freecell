@@ -31,9 +31,9 @@ public:
 		f_cost(0), parent(std::move(p)), action(a) {}
 };
 
-template <typename T>
+template <typename MapType>
 std::vector<SearchAction> getPath(
-	std::map<SearchSharedPtr, PathItem, T> &paths, 
+	MapType &paths, 
 	SearchSharedPtr final, 
 	SearchSharedPtr init
 ) {
