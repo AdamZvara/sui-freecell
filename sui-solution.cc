@@ -131,11 +131,11 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
         std::vector<SearchAction> availActions = currState->actions();
 
         for (SearchAction action : availActions) {
-				if (memUsageSucceeded(mem_limit_)) {
-						// Stop if memory usage is too high
-						std::cerr << "Memory limit exceeded" << std::endl;
-						return {};
-				}
+						if (memUsageSucceeded(mem_limit_)) {
+								// Stop if memory usage is too high
+								std::cerr << "Memory limit exceeded" << std::endl;
+								return {};
+						}
 
             SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
             if (newState->isFinal()) {
