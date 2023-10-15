@@ -7,7 +7,6 @@
 #include "search-strategies.h"
 #include "memusage.h"
 
-#include <malloc.h>
 #include <utility>
 
 #define RESERVE 50000 // 50 MB memory reserve
@@ -56,7 +55,6 @@ bool searchStatePtrLesser(const SearchSharedPtr a, const SearchSharedPtr b) {
 }
 
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
-    malloc_trim(0);
 		std::map<SearchSharedPtr, PathItem> paths;
     std::queue<SearchSharedPtr> open;
     std::set<SearchSharedPtr, decltype(searchStatePtrLesser)*> explored(searchStatePtrLesser);
@@ -108,7 +106,6 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 }
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
-    malloc_trim(0);
     std::map<SearchSharedPtr, PathItem> paths;
     std::stack<std::pair<SearchSharedPtr, int>> open;
     std::set<SearchSharedPtr, decltype(searchStatePtrLesser)*> openSet(searchStatePtrLesser);
