@@ -161,8 +161,79 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
 	return {};
 }
 
+double nbOfCardsOnTop(std::array<WorkStack, nb_stacks> stacks, Card card_to_find) {
+	// Try to find card with value one more (of the same color) in stacks
+	for (const auto &stack : stacks) {
+		auto storage = stack.storage();
+		// Skip empty stack
+		if (storage.size() == 0) {
+			continue;
+		}
+		// For non-empty stack find card to be placed at top of the home pile
+		auto card = std::find(storage.begin(), storage.end(), card_to_find);
+		// Count the number of cards on top of this stack
+		if (card != storage.end()) {
+			return std::distance(card, storage.end()) - 1; // -1 because we don't count past the end
+		}
+	}
+
+	// Card is at free cell 
+	return 0;
+}
+
+inline bool hasEmptySpot(const GameState &state)  {
+	auto free_cells_single_empty = std::find_if(state.free_cells.begin(), state.free_cells.end(), [](const FreeCell &cell) {
+		return cell.canAccept(Card(Color::Heart, 1));
+	});
+	auto stacks_single_empty = std::find_if(state.stacks.begin(), state.stacks.end(), [](const WorkStack &stack) {
+		return stack.canAccept(Card(Color::Heart, 1));
+	});
+	return free_cells_single_empty != state.free_cells.end() || stacks_single_empty != state.stacks.end();
+} 
+
+inline bool CardOutOfHome(const GameState &state) {
+	int cards_out_of_home = king_value * colors_list.size();
+    for (const auto &home : state.homes) {
+        auto opt_top = home.topCard();
+        if (opt_top.has_value())
+            cards_out_of_home -= opt_top->value;
+    }
+	return cards_out_of_home;
+}
+
+// Using Heineman's staged deepening heuristic with comination of CardsOutOfHome heuristic
+// Source: https://www.human-competitive.org/sites/default/files/elyasaf-hauptmann-sipper-paper.pdf
 double StudentHeuristic::distanceLowerBound(const GameState &state) const {
-    return 0;
+	int result = 0;
+	int colors_idx = 0;
+	std::array<std::optional<Color>, 4> used_colors;
+
+	// For each top card of home pile
+   	for (const auto &home : state.homes) {
+		auto opt_top = home.topCard();
+		// If there is any card placed in that home pile and it's not the king
+		if (opt_top.has_value() && opt_top->value != king_value) {
+			// calculate number cards on top for this card in working piles
+			result += nbOfCardsOnTop(state.stacks, Card(opt_top->color, opt_top->value + 1));
+			used_colors[colors_idx++] = opt_top->color;
+		}
+	}
+    	
+	// Run through home piles for the remaining colors
+	for (auto color: colors_list) {
+		auto a = std::find(used_colors.begin(), used_colors.end(), color);
+		if (a == used_colors.end()) {
+			result += nbOfCardsOnTop(state.stacks, Card(color, 1));
+		}
+	}
+
+	// Multiply result by 2 if there are no empty free cells or stacks
+	if (!hasEmptySpot(state)) {
+		result *= 2;
+	}
+
+	// Combine CardsOutOfHome heuristic and result
+	return CardOutOfHome(state) + result;
 }
 
 /* Since this is the only operator that isn't defined and can access
