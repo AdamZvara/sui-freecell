@@ -14,19 +14,6 @@
 
 typedef std::shared_ptr<SearchState> SearchSharedPtr; 
 
-/* Since this is the only operator that isn't defined and can access
- private members, it is used to compare states based on their stacks 
- (e.g. 2 states are considered equal, if their stacks are equal, so
- we don't take their freecells into consideration, because many expanded states
- only differ with card position in free cells or home cells ...) */
-bool operator==(const SearchState &s1, const SearchState &s2) {
-	return s1.state_.stacks < s2.state_.stacks;
-}
-
-bool searchStatePtrLesser(const std::shared_ptr<SearchState> a, const std::shared_ptr<SearchState> b) {
-    return *a < *b;
-}
-
 inline bool memUsageSucceeded(size_t limit) {
 	return getCurrentRSS() > limit - RESERVE;
 }
@@ -42,13 +29,6 @@ public:
 
 	PathItem(SearchSharedPtr p, const SearchAction& a) : 
 		f_cost(0), parent(std::move(p)), action(a) {}
-};
-
-// Since we use shared pointers to states, we need to define a custom comparator
-struct cmpStateSharedPtr {
-	bool operator()(const SearchSharedPtr &lhs, const SearchSharedPtr &rhs) const {
-		return *lhs == *rhs;
-	}
 };
 
 template <typename T>
@@ -71,13 +51,17 @@ std::vector<SearchAction> getPath(
 	return path;
 }
 
+bool searchStatePtrLesser(const SearchSharedPtr a, const SearchSharedPtr b) {
+    return *a < *b;
+}
+
 std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_state) {
     malloc_trim(0);
-	std::map<std::shared_ptr<SearchState>, PathItem> paths;
-    std::queue<std::shared_ptr<SearchState>> open;
-    std::set<std::shared_ptr<SearchState>, decltype(searchStatePtrLesser)*> explored(searchStatePtrLesser);
+	std::map<SearchSharedPtr, PathItem> paths;
+    std::queue<SearchSharedPtr> open;
+    std::set<SearchSharedPtr, decltype(searchStatePtrLesser)*> explored(searchStatePtrLesser);
 
-    std::shared_ptr<SearchState> initStatePtr = std::make_shared<SearchState>(init_state);
+    SearchSharedPtr initStatePtr = std::make_shared<SearchState>(init_state);
     open.push(initStatePtr);
 
     if (init_state.isFinal()) {
@@ -86,7 +70,7 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
     }
 
     while (!open.empty()) {
-        std::shared_ptr<SearchState> currState = open.front();
+        SearchSharedPtr currState = open.front();
         open.pop();
         // skip duplicates in OPEN
         if (explored.find(currState) != explored.end()) {
@@ -103,7 +87,7 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 				return {};
 			}
 
-            std::shared_ptr<SearchState> newState = std::make_shared<SearchState>(action.execute(*currState));
+            SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
 
             if (newState->isFinal()) {
                 // found final state
@@ -125,12 +109,12 @@ std::vector<SearchAction> BreadthFirstSearch::solve(const SearchState &init_stat
 
 std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state) {
     malloc_trim(0);
-    std::map<std::shared_ptr<SearchState>, PathItem> paths;
-    std::stack<std::pair<std::shared_ptr<SearchState>, int>> open;
-    std::set<std::shared_ptr<SearchState>, decltype(searchStatePtrLesser)*> openSet(searchStatePtrLesser);
+    std::map<SearchSharedPtr, PathItem> paths;
+    std::stack<std::pair<SearchSharedPtr, int>> open;
+    std::set<SearchSharedPtr, decltype(searchStatePtrLesser)*> openSet(searchStatePtrLesser);
 
     int currDepth = 0;
-    std::shared_ptr<SearchState> initStatePtr = std::make_shared<SearchState>(init_state);
+    SearchSharedPtr initStatePtr = std::make_shared<SearchState>(init_state);
     open.push(std::make_pair(initStatePtr, currDepth));
 
     if (init_state.isFinal()) {
@@ -139,8 +123,8 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
     }
 
     while (!open.empty()) {
-        std::pair<std::shared_ptr<SearchState>, int> currStatePair = open.top();
-        std::shared_ptr<SearchState> currState = currStatePair.first;
+        std::pair<SearchSharedPtr, int> currStatePair = open.top();
+        SearchSharedPtr currState = currStatePair.first;
         currDepth = currStatePair.second;
         open.pop();
 
@@ -157,7 +141,7 @@ std::vector<SearchAction> DepthFirstSearch::solve(const SearchState &init_state)
 				return {};
 			}
 
-            std::shared_ptr<SearchState> newState = std::make_shared<SearchState>(action.execute(*currState));
+            SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
             if (newState->isFinal()) {
                 // found final state
                 std::cout << "Found Final State\n";
@@ -181,6 +165,19 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
     return 0;
 }
 
+/* Since this is the only operator that isn't defined and can access
+ private members, it is used to compare states based on their stacks 
+ (e.g. 2 states are considered equal, if their stacks are equal, so
+ we don't take their freecells into consideration, because many expanded states
+ only differ with card position in free cells or home cells ...) */
+bool operator==(const SearchState &s1, const SearchState &s2) {
+	return s1.state_.stacks < s2.state_.stacks;
+}
+
+bool searchStatePtrEqAstar(const SearchSharedPtr lhs, const SearchSharedPtr rhs) {
+	return *lhs == *rhs;
+}
+
 class AStarOpenItem {
 public:
 	SearchSharedPtr state;
@@ -200,8 +197,8 @@ public:
 
 std::vector<SearchAction> AStarSearch::solve(const SearchState &init_state) {	
 	std::multiset<AStarOpenItem> open;
-	std::set<SearchSharedPtr, cmpStateSharedPtr> closed;
-	std::map<SearchSharedPtr, PathItem, cmpStateSharedPtr> paths;
+	std::set<SearchSharedPtr, decltype(searchStatePtrEqAstar)*> closed(searchStatePtrEqAstar);
+	std::map<SearchSharedPtr, PathItem, decltype(searchStatePtrEqAstar)*> paths(searchStatePtrEqAstar);
 
 	auto init_state_ptr = std::make_shared<SearchState>(init_state);
 
