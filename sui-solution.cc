@@ -1,3 +1,9 @@
+/**
+ * SUI FreeCell solver
+ * @author: Adam Zvara xzvara01
+ * @author: Tomáš Matuš xmatus37
+ */
+
 #include <algorithm>
 #include <queue>
 #include <set>
