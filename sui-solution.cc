@@ -1,3 +1,9 @@
+/**
+ * SUI FreeCell solver
+ * @author: Adam Zvara xzvara01
+ * @author: Tomáš Matuš xmatus37
+ */
+
 #include <algorithm>
 #include <queue>
 #include <set>
@@ -137,8 +143,7 @@ DepthFirstSearch::solve(const SearchState &init_state) {
         return {};
       }
 
-      SearchSharedPtr newState =
-          std::make_shared<SearchState>(action.execute(*currState));
+      SearchSharedPtr newState = std::make_shared<SearchState>(action.execute(*currState));
       if (newState->isFinal()) {
         // found final state
         paths.insert_or_assign(newState, PathItem(currState, action));
@@ -214,8 +219,7 @@ double StudentHeuristic::distanceLowerBound(const GameState &state) const {
     // If there is any card placed in that home pile and it's not the king
     if (opt_top.has_value() && opt_top->value != king_value) {
       // calculate number cards on top for this card in working piles
-      result += nbOfCardsOnTop(state.stacks,
-                               Card(opt_top->color, opt_top->value + 1));
+      result += nbOfCardsOnTop(state.stacks, Card(opt_top->color, opt_top->value + 1));
       used_colors[colors_idx++] = opt_top->color;
     }
   }
