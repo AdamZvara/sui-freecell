@@ -191,7 +191,7 @@ inline bool hasEmptySpot(const GameState &state)  {
 	return free_cells_single_empty != state.free_cells.end() || stacks_single_empty != state.stacks.end();
 } 
 
-inline bool CardOutOfHome(const GameState &state) {
+inline int CardOutOfHome(const GameState &state) {
 	int cards_out_of_home = king_value * colors_list.size();
     for (const auto &home : state.homes) {
         auto opt_top = home.topCard();
